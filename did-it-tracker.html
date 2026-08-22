@@ -557,26 +557,61 @@
   els.btnDidnt.addEventListener('click', () => selectStatus('didnt'));
 
   // ---------- storage ----------
+  // Uses real browser localStorage when available (GitHub Pages, any normal
+  // web host). Falls back to Claude's window.storage only when this file is
+  // running inside a Claude preview, where localStorage may be sandboxed.
+  const hasLocalStorage = (() => {
+    try {
+      const t = '__storage_test__';
+      window.localStorage.setItem(t, t);
+      window.localStorage.removeItem(t);
+      return true;
+    } catch (e) { return false; }
+  })();
+
+  async function storageGet(key) {
+    if (hasLocalStorage) {
+      const v = window.localStorage.getItem(key);
+      return v === null ? null : v;
+    }
+    if (window.storage) {
+      try {
+        const result = await window.storage.get(key, false);
+        return result ? result.value : null;
+      } catch (e) { return null; }
+    }
+    return null;
+  }
+  async function storageSet(key, value) {
+    if (hasLocalStorage) {
+      try { window.localStorage.setItem(key, value); return true; }
+      catch (e) { return false; }
+    }
+    if (window.storage) {
+      try { await window.storage.set(key, value, false); return true; }
+      catch (e) { return false; }
+    }
+    return false;
+  }
+
   async function loadEntries() {
     try {
-      const result = await window.storage.get(STORAGE_KEY, false);
-      entries = result ? JSON.parse(result.value) : [];
+      const raw = await storageGet(STORAGE_KEY);
+      entries = raw ? JSON.parse(raw) : [];
     } catch (e) { entries = []; }
     entries.forEach(e => { if (typeof e.category !== 'string') e.category = ''; });
   }
   async function saveEntries() {
-    try { await window.storage.set(STORAGE_KEY, JSON.stringify(entries), false); return true; }
-    catch (e) { return false; }
+    return await storageSet(STORAGE_KEY, JSON.stringify(entries));
   }
   async function loadSettings() {
     try {
-      const result = await window.storage.get(SETTINGS_KEY, false);
-      settings = result ? JSON.parse(result.value) : { targetRate: null };
+      const raw = await storageGet(SETTINGS_KEY);
+      settings = raw ? JSON.parse(raw) : { targetRate: null };
     } catch (e) { settings = { targetRate: null }; }
   }
   async function saveSettings() {
-    try { await window.storage.set(SETTINGS_KEY, JSON.stringify(settings), false); return true; }
-    catch (e) { return false; }
+    return await storageSet(SETTINGS_KEY, JSON.stringify(settings));
   }
 
   function formatDateDisplay(dateStr) {
