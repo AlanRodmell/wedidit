@@ -151,13 +151,14 @@
   .entry .dot.did { background: var(--green); }
   .entry .dot.didnt { background: var(--red); }
   .entry .content { flex: 1; min-width: 0; }
-  .entry .top-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .entry .top-row { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
   .entry .status { font-weight: 600; font-size: 0.9rem; }
   .entry .status.did { color: var(--green); }
   .entry .status.didnt { color: var(--red); }
-  .entry .date { font-size: 0.72rem; color: var(--muted); white-space: nowrap; }
+  .entry .date { font-size: 0.72rem; color: var(--muted); }
   .entry .comment { font-size: 0.85rem; color: var(--text); margin-top: 3px; word-break: break-word; }
   .entry .comment.empty { color: var(--muted); font-style: italic; }
+  .entry .tag-list { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
   .entry .tag {
     display: inline-block;
     font-size: 0.68rem;
@@ -165,7 +166,6 @@
     background: var(--accent-dim);
     border-radius: 6px;
     padding: 1px 7px;
-    margin-top: 5px;
   }
   .del-btn {
     background: none;
@@ -306,7 +306,7 @@
       <label class="field-label" for="entryDate">Date</label>
       <input type="date" id="entryDate">
 
-      <label class="field-label" for="entryCategory">Category / tag (optional)</label>
+      <label class="field-label" for="entryCategory">Tags (optional, separated by commas)</label>
       <input type="text" id="entryCategory" list="categoryList" placeholder="e.g. gym, no smoking, chores">
       <datalist id="categoryList"></datalist>
 
@@ -333,9 +333,9 @@
     <h2 class="section-title">History</h2>
 
     <div class="search-row">
-      <input type="text" id="searchInput" placeholder="Search comments…">
+      <input type="text" id="searchInput" placeholder="Search comments or tags…">
       <select id="categoryFilter">
-        <option value="">All categories</option>
+        <option value="">All tags</option>
       </select>
     </div>
 
@@ -406,7 +406,7 @@
     <h2 class="section-title">By Day of Week</h2>
     <div class="bar-wrap"><div class="dow-grid" id="dowGrid"></div></div>
 
-    <h2 class="section-title">By Category</h2>
+    <h2 class="section-title">By Tag</h2>
     <div class="bar-wrap" id="categoryWrap"></div>
 
   </div>
@@ -434,8 +434,8 @@
     </div>
     <label class="field-label" for="editDate">Date</label>
     <input type="date" id="editDate">
-    <label class="field-label" for="editCategory">Category / tag</label>
-    <input type="text" id="editCategory" list="categoryList">
+    <label class="field-label" for="editCategory">Tags (separated by commas)</label>
+    <input type="text" id="editCategory" list="categoryList" placeholder="e.g. gym, no smoking, chores">
     <label class="field-label" for="editComment">Comment</label>
     <textarea id="editComment"></textarea>
     <div class="btn-row">
@@ -599,7 +599,7 @@
       const raw = await storageGet(STORAGE_KEY);
       entries = raw ? JSON.parse(raw) : [];
     } catch (e) { entries = []; }
-    entries.forEach(e => { if (typeof e.category !== 'string') e.category = ''; });
+    entries.forEach(e => setEntryTags(e, Array.isArray(e.tags) ? e.tags : e.category));
   }
   async function saveEntries() {
     return await storageSet(STORAGE_KEY, JSON.stringify(entries));
@@ -617,32 +617,63 @@
   function formatDateDisplay(dateStr) {
     const [y, m, d] = dateStr.split('-').map(Number);
     const dt = new Date(y, m - 1, d);
-    return dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+    return dt.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   }
 
-  function getCategories() {
-    const set = new Set();
-    entries.forEach(e => { if (e.category) set.add(e.category); });
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  function normaliseTags(value) {
+    const raw = Array.isArray(value) ? value : String(value || '').split(',');
+    const tags = [];
+    const seen = new Set();
+    raw.forEach(item => {
+      String(item || '').split(',').forEach(part => {
+        const tag = part.trim();
+        const key = tag.toLocaleLowerCase();
+        if (!tag || seen.has(key)) return;
+        seen.add(key);
+        tags.push(tag);
+      });
+    });
+    return tags;
+  }
+
+  function entryTags(entry) {
+    return normaliseTags(Array.isArray(entry.tags) ? entry.tags : entry.category);
+  }
+
+  function setEntryTags(entry, value) {
+    const tags = normaliseTags(value);
+    entry.tags = tags;
+    // Keep the first tag for compatibility with older exported backups.
+    entry.category = tags[0] || '';
+    return tags;
+  }
+
+  function getTags() {
+    const tagsByKey = new Map();
+    entries.forEach(e => entryTags(e).forEach(tag => {
+      const key = tag.toLocaleLowerCase();
+      if (!tagsByKey.has(key)) tagsByKey.set(key, tag);
+    }));
+    return Array.from(tagsByKey.values()).sort((a, b) => a.localeCompare(b));
   }
 
   function refreshCategoryUI() {
-    const cats = getCategories();
+    const tags = getTags();
     const currentFilter = els.categoryFilter.value;
     els.categoryList.innerHTML = '';
-    cats.forEach(c => {
+    tags.forEach(tag => {
       const opt = document.createElement('option');
-      opt.value = c;
+      opt.value = tag;
       els.categoryList.appendChild(opt);
     });
-    els.categoryFilter.innerHTML = '<option value="">All categories</option>';
-    cats.forEach(c => {
+    els.categoryFilter.innerHTML = '<option value="">All tags</option>';
+    tags.forEach(tag => {
       const opt = document.createElement('option');
-      opt.value = c;
-      opt.textContent = c;
+      opt.value = tag;
+      opt.textContent = tag;
       els.categoryFilter.appendChild(opt);
     });
-    if (cats.includes(currentFilter)) els.categoryFilter.value = currentFilter;
+    if (tags.includes(currentFilter)) els.categoryFilter.value = currentFilter;
   }
 
   // ---------- render ----------
@@ -792,13 +823,16 @@
       els.dowGrid.appendChild(cell);
     });
 
-    // By category
-    const catMap = {};
+    // By tag
+    const catMap = Object.create(null);
     entries.forEach(e => {
-      const key = e.category ? e.category : '(uncategorized)';
-      if (!catMap[key]) catMap[key] = { did: 0, total: 0 };
-      catMap[key].total++;
-      if (e.status === 'did') catMap[key].did++;
+      const tags = entryTags(e);
+      (tags.length ? tags : ['(untagged)']).forEach(tag => {
+        const key = tag.toLocaleLowerCase();
+        if (!catMap[key]) catMap[key] = { label: tag, did: 0, total: 0 };
+        catMap[key].total++;
+        if (e.status === 'did') catMap[key].did++;
+      });
     });
     const catKeys = Object.keys(catMap).sort((a, b) => catMap[b].total - catMap[a].total);
     els.categoryWrap.innerHTML = '';
@@ -806,10 +840,10 @@
       const empty = document.createElement('div'); empty.className = 'empty-state'; empty.textContent = 'No data yet'; els.categoryWrap.appendChild(empty);
     } else {
       catKeys.forEach(key => {
-        const { did, total: t } = catMap[key];
+        const { label, did, total: t } = catMap[key];
         const pct = t ? Math.round((did / t) * 100) : 0;
         const row = document.createElement('div'); row.className = 'cat-row';
-        const lbl = document.createElement('div'); lbl.className = 'cat-label'; lbl.textContent = `${key} (${t})`; row.appendChild(lbl);
+        const lbl = document.createElement('div'); lbl.className = 'cat-label'; lbl.textContent = `${label} (${t})`; row.appendChild(lbl);
         const track = document.createElement('div'); track.className = 'cat-bar-track';
         const segG = document.createElement('div'); segG.className = 'bar-seg green'; segG.style.width = pct + '%'; track.appendChild(segG);
         const segR = document.createElement('div'); segR.className = 'bar-seg red'; segR.style.width = (100 - pct) + '%'; track.appendChild(segR);
@@ -870,8 +904,9 @@
     const q = els.searchInput.value.trim().toLowerCase();
     const catFilter = els.categoryFilter.value;
     const filtered = sortedDesc.filter(e => {
-      if (catFilter && e.category !== catFilter) return false;
-      if (q && !(e.comment || '').toLowerCase().includes(q) && !(e.category || '').toLowerCase().includes(q)) return false;
+      const tags = entryTags(e);
+      if (catFilter && !tags.some(tag => tag.toLocaleLowerCase() === catFilter.toLocaleLowerCase())) return false;
+      if (q && !(e.comment || '').toLowerCase().includes(q) && !tags.join(' ').toLowerCase().includes(q)) return false;
       return true;
     });
 
@@ -904,11 +939,17 @@
       comment.textContent = entry.comment || 'No comment';
       content.appendChild(comment);
 
-      if (entry.category) {
-        const tag = document.createElement('div');
-        tag.className = 'tag';
-        tag.textContent = entry.category;
-        content.appendChild(tag);
+      const tags = entryTags(entry);
+      if (tags.length) {
+        const tagList = document.createElement('div');
+        tagList.className = 'tag-list';
+        tags.forEach(value => {
+          const tag = document.createElement('span');
+          tag.className = 'tag';
+          tag.textContent = value;
+          tagList.appendChild(tag);
+        });
+        content.appendChild(tagList);
       }
 
       row.appendChild(content);
@@ -937,13 +978,14 @@
     if (!selectedStatus) return;
     const date = els.entryDate.value || todayStr();
     const comment = els.entryComment.value.trim();
-    const category = els.entryCategory.value.trim();
+    const tags = normaliseTags(els.entryCategory.value);
 
     const entry = {
       id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
       status: selectedStatus,
       date: date,
-      category: category,
+      tags: tags,
+      category: tags[0] || '',
       comment: comment,
       createdAt: Date.now()
     };
@@ -972,7 +1014,7 @@
     els.editBtnDid.classList.toggle('active', entry.status === 'did');
     els.editBtnDidnt.classList.toggle('active', entry.status === 'didnt');
     els.editDate.value = entry.date;
-    els.editCategory.value = entry.category || '';
+    els.editCategory.value = entryTags(entry).join(', ');
     els.editComment.value = entry.comment || '';
     els.editModal.classList.remove('hidden');
   }
@@ -1001,7 +1043,7 @@
     if (!entry) { closeEditModal(); return; }
     entry.status = editSelectedStatus || entry.status;
     entry.date = els.editDate.value || entry.date;
-    entry.category = els.editCategory.value.trim();
+    setEntryTags(entry, els.editCategory.value);
     entry.comment = els.editComment.value.trim();
     closeEditModal();
     render();
@@ -1044,9 +1086,9 @@
     return s;
   }
   els.exportCsvBtn.addEventListener('click', () => {
-    const header = ['date', 'status', 'category', 'comment'];
+    const header = ['date', 'status', 'tags', 'comment'];
     const rows = [...entries].sort((a, b) => a.date.localeCompare(b.date)).map(e =>
-      [e.date, e.status === 'did' ? 'Did It' : "Didn't", e.category || '', e.comment || ''].map(csvEscape).join(',')
+      [e.date, e.status === 'did' ? 'Did It' : "Didn't", entryTags(e).join(', '), e.comment || ''].map(csvEscape).join(',')
     );
     const csv = header.join(',') + '\n' + rows.join('\n');
     downloadBlob(csv, 'text/csv', `did-it-export-${todayStr()}.csv`);
@@ -1075,7 +1117,7 @@
         if (!e.id) e.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
         if (!e.createdAt) e.createdAt = Date.now();
         if (typeof e.comment !== 'string') e.comment = '';
-        if (typeof e.category !== 'string') e.category = '';
+        setEntryTags(e, Array.isArray(e.tags) ? e.tags : e.category);
       });
       pendingImport = valid;
       els.importSummary.textContent =
