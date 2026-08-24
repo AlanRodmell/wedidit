@@ -136,6 +136,32 @@
   .search-row input { margin-bottom: 0; flex: 1; }
   .search-row select { margin-bottom: 0; max-width: 130px; }
 
+  .tag-picker { display: flex; flex-wrap: wrap; gap: 7px; min-height: 36px; margin: 4px 0 10px; }
+  .tag-choice {
+    min-height: 34px;
+    padding: 6px 11px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--card-2);
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .tag-choice.selected { border-color: var(--accent); background: var(--accent-dim); color: #bcc4ff; }
+  .tag-picker-empty { margin: 2px 0 8px; color: var(--muted); font-size: 0.78rem; }
+  .tag-manager { margin: 2px 0 14px; border: 1px solid var(--border); border-radius: 10px; background: rgba(33,36,47,0.5); }
+  .tag-manager summary { padding: 10px 12px; color: var(--muted); font-size: 0.78rem; font-weight: 600; cursor: pointer; }
+  .tag-manager-body { padding: 0 10px 10px; }
+  .tag-create-row { display: flex; gap: 7px; }
+  .tag-create-row input { min-width: 0; margin: 0; }
+  .tag-create-row button { flex-shrink: 0; padding: 8px 12px; border: 1px solid var(--accent); border-radius: 9px; background: var(--accent-dim); color: #bcc4ff; font-weight: 600; cursor: pointer; }
+  .tag-library { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+  .tag-library-item { display: inline-flex; align-items: center; gap: 5px; padding: 4px 5px 4px 9px; border-radius: 999px; background: var(--card-2); color: var(--text); font-size: 0.72rem; }
+  .tag-library-item button { width: 22px; height: 22px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--muted); cursor: pointer; }
+  .tag-library-item button:hover { background: var(--red-dim); color: var(--red); }
+  .tag-manager-note { display: block; margin-top: 8px; color: var(--muted); font-size: 0.68rem; line-height: 1.35; }
+
   .entry {
     display: flex;
     gap: 10px;
@@ -306,9 +332,16 @@
       <label class="field-label" for="entryDate">Date</label>
       <input type="date" id="entryDate">
 
-      <label class="field-label" for="entryCategory">Tags (optional, separated by commas)</label>
-      <input type="text" id="entryCategory" list="categoryList" placeholder="e.g. gym, no smoking, chores">
-      <datalist id="categoryList"></datalist>
+      <span class="field-label" id="entryTagsLabel">Tags (optional)</span>
+      <div class="tag-picker" id="entryTagPicker" role="group" aria-labelledby="entryTagsLabel"></div>
+      <details class="tag-manager">
+        <summary>Manage tags</summary>
+        <div class="tag-manager-body">
+          <div class="tag-create-row"><input type="text" id="newTagInput" maxlength="40" placeholder="Create a tag"><button type="button" id="addTagBtn">Add tag</button></div>
+          <div class="tag-library" id="tagLibrary"></div>
+          <small class="tag-manager-note">Removing a saved tag does not change existing entries; tags already in use remain selectable.</small>
+        </div>
+      </details>
 
       <label class="field-label" for="entryComment">Comment (optional)</label>
       <textarea id="entryComment" placeholder="Any notes about this one…"></textarea>
@@ -434,8 +467,8 @@
     </div>
     <label class="field-label" for="editDate">Date</label>
     <input type="date" id="editDate">
-    <label class="field-label" for="editCategory">Tags (separated by commas)</label>
-    <input type="text" id="editCategory" list="categoryList" placeholder="e.g. gym, no smoking, chores">
+    <span class="field-label" id="editTagsLabel">Tags</span>
+    <div class="tag-picker" id="editTagPicker" role="group" aria-labelledby="editTagsLabel"></div>
     <label class="field-label" for="editComment">Comment</label>
     <textarea id="editComment"></textarea>
     <div class="btn-row">
@@ -451,9 +484,11 @@
   const STORAGE_KEY = 'did-it-entries';
   const SETTINGS_KEY = 'did-it-settings';
   let entries = [];
-  let settings = { targetRate: null };
+  let settings = { targetRate: null, tags: [] };
   let selectedStatus = null;
+  let selectedTags = new Set();
   let editSelectedStatus = null;
+  let editSelectedTags = new Set();
   let editingId = null;
 
   const els = {
@@ -462,14 +497,16 @@
     btnDid: document.getElementById('btnDid'),
     btnDidnt: document.getElementById('btnDidnt'),
     entryDate: document.getElementById('entryDate'),
-    entryCategory: document.getElementById('entryCategory'),
+    entryTagPicker: document.getElementById('entryTagPicker'),
+    newTagInput: document.getElementById('newTagInput'),
+    addTagBtn: document.getElementById('addTagBtn'),
+    tagLibrary: document.getElementById('tagLibrary'),
     entryComment: document.getElementById('entryComment'),
     saveBtn: document.getElementById('saveBtn'),
     saveMsg: document.getElementById('saveMsg'),
     entryList: document.getElementById('entryList'),
     searchInput: document.getElementById('searchInput'),
     categoryFilter: document.getElementById('categoryFilter'),
-    categoryList: document.getElementById('categoryList'),
     statDidCount: document.getElementById('statDidCount'),
     statDidntCount: document.getElementById('statDidntCount'),
     statTotal: document.getElementById('statTotal'),
@@ -510,7 +547,7 @@
     editBtnDid: document.getElementById('editBtnDid'),
     editBtnDidnt: document.getElementById('editBtnDidnt'),
     editDate: document.getElementById('editDate'),
-    editCategory: document.getElementById('editCategory'),
+    editTagPicker: document.getElementById('editTagPicker'),
     editComment: document.getElementById('editComment'),
     editDeleteBtn: document.getElementById('editDeleteBtn'),
     editCancelBtn: document.getElementById('editCancelBtn'),
@@ -607,8 +644,10 @@
   async function loadSettings() {
     try {
       const raw = await storageGet(SETTINGS_KEY);
-      settings = raw ? JSON.parse(raw) : { targetRate: null };
-    } catch (e) { settings = { targetRate: null }; }
+      settings = raw ? JSON.parse(raw) : { targetRate: null, tags: [] };
+    } catch (e) { settings = { targetRate: null, tags: [] }; }
+    if (!settings || typeof settings !== 'object') settings = { targetRate: null, tags: [] };
+    settings.tags = normaliseTags(settings.tags);
   }
   async function saveSettings() {
     return await storageSet(SETTINGS_KEY, JSON.stringify(settings));
@@ -657,15 +696,111 @@
     return Array.from(tagsByKey.values()).sort((a, b) => a.localeCompare(b));
   }
 
+  function mergeTags(...values) {
+    return normaliseTags(values.flatMap(value => Array.isArray(value) ? value : [value]));
+  }
+
+  function getAvailableTags() {
+    return mergeTags(settings.tags, getTags()).sort((a, b) => a.localeCompare(b));
+  }
+
+  function hasSelectedTag(selection, tag) {
+    const key = tag.toLocaleLowerCase();
+    return Array.from(selection).some(value => value.toLocaleLowerCase() === key);
+  }
+
+  function toggleSelectedTag(selection, tag) {
+    const key = tag.toLocaleLowerCase();
+    const existing = Array.from(selection).find(value => value.toLocaleLowerCase() === key);
+    if (existing) selection.delete(existing); else selection.add(tag);
+  }
+
+  function renderTagPicker(container, selection) {
+    container.innerHTML = '';
+    const available = getAvailableTags();
+    if (!available.length) {
+      const empty = document.createElement('p');
+      empty.className = 'tag-picker-empty';
+      empty.textContent = 'Create your first tag below.';
+      container.appendChild(empty);
+      return;
+    }
+    available.forEach(tag => {
+      const selected = hasSelectedTag(selection, tag);
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'tag-choice' + (selected ? ' selected' : '');
+      button.setAttribute('aria-pressed', String(selected));
+      button.textContent = tag;
+      button.addEventListener('click', () => {
+        toggleSelectedTag(selection, tag);
+        renderTagControls();
+      });
+      container.appendChild(button);
+    });
+  }
+
+  function renderTagLibrary() {
+    els.tagLibrary.innerHTML = '';
+    if (!settings.tags.length) {
+      const empty = document.createElement('span');
+      empty.className = 'tag-picker-empty';
+      empty.textContent = 'No saved tags yet.';
+      els.tagLibrary.appendChild(empty);
+      return;
+    }
+    settings.tags.forEach(tag => {
+      const item = document.createElement('span');
+      item.className = 'tag-library-item';
+      item.append(document.createTextNode(tag));
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.setAttribute('aria-label', `Remove ${tag} from saved tags`);
+      remove.textContent = '×';
+      remove.addEventListener('click', async () => {
+        settings.tags = settings.tags.filter(value => value.toLocaleLowerCase() !== tag.toLocaleLowerCase());
+        const selected = Array.from(selectedTags).find(value => value.toLocaleLowerCase() === tag.toLocaleLowerCase());
+        if (selected) selectedTags.delete(selected);
+        await saveSettings();
+        render();
+      });
+      item.appendChild(remove);
+      els.tagLibrary.appendChild(item);
+    });
+  }
+
+  function renderTagControls() {
+    renderTagPicker(els.entryTagPicker, selectedTags);
+    renderTagPicker(els.editTagPicker, editSelectedTags);
+    renderTagLibrary();
+  }
+
+  async function addSavedTags() {
+    const added = normaliseTags(els.newTagInput.value);
+    if (!added.length) return;
+    const existing = getAvailableTags();
+    const canonicalAdded = added.map(tag => existing.find(value => value.toLocaleLowerCase() === tag.toLocaleLowerCase()) || tag);
+    settings.tags = mergeTags(settings.tags, canonicalAdded);
+    const available = getAvailableTags();
+    canonicalAdded.forEach(tag => {
+      const canonical = available.find(value => value.toLocaleLowerCase() === tag.toLocaleLowerCase()) || tag;
+      if (!hasSelectedTag(selectedTags, canonical)) selectedTags.add(canonical);
+    });
+    els.newTagInput.value = '';
+    await saveSettings();
+    render();
+  }
+
+  els.addTagBtn.addEventListener('click', addSavedTags);
+  els.newTagInput.addEventListener('keydown', event => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    addSavedTags();
+  });
+
   function refreshCategoryUI() {
     const tags = getTags();
     const currentFilter = els.categoryFilter.value;
-    els.categoryList.innerHTML = '';
-    tags.forEach(tag => {
-      const opt = document.createElement('option');
-      opt.value = tag;
-      els.categoryList.appendChild(opt);
-    });
     els.categoryFilter.innerHTML = '<option value="">All tags</option>';
     tags.forEach(tag => {
       const opt = document.createElement('option');
@@ -679,6 +814,7 @@
   // ---------- render ----------
   function render() {
     refreshCategoryUI();
+    renderTagControls();
 
     const chrono = [...entries].sort((a, b) => {
       if (a.date !== b.date) return a.date.localeCompare(b.date);
@@ -978,7 +1114,7 @@
     if (!selectedStatus) return;
     const date = els.entryDate.value || todayStr();
     const comment = els.entryComment.value.trim();
-    const tags = normaliseTags(els.entryCategory.value);
+    const tags = normaliseTags(Array.from(selectedTags));
 
     const entry = {
       id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
@@ -991,6 +1127,7 @@
     };
 
     entries.push(entry);
+    selectedTags.clear();
     render();
 
     els.saveBtn.disabled = true;
@@ -1000,7 +1137,6 @@
     setTimeout(() => { els.saveMsg.textContent = ''; }, 1800);
 
     els.entryComment.value = '';
-    els.entryCategory.value = '';
     selectStatus(null);
     els.entryDate.value = todayStr();
   });
@@ -1014,13 +1150,15 @@
     els.editBtnDid.classList.toggle('active', entry.status === 'did');
     els.editBtnDidnt.classList.toggle('active', entry.status === 'didnt');
     els.editDate.value = entry.date;
-    els.editCategory.value = entryTags(entry).join(', ');
+    editSelectedTags = new Set(entryTags(entry));
     els.editComment.value = entry.comment || '';
+    renderTagControls();
     els.editModal.classList.remove('hidden');
   }
   function closeEditModal() {
     els.editModal.classList.add('hidden');
     editingId = null;
+    editSelectedTags.clear();
   }
   els.editBtnDid.addEventListener('click', () => {
     editSelectedStatus = 'did';
@@ -1043,7 +1181,7 @@
     if (!entry) { closeEditModal(); return; }
     entry.status = editSelectedStatus || entry.status;
     entry.date = els.editDate.value || entry.date;
-    setEntryTags(entry, els.editCategory.value);
+    setEntryTags(entry, Array.from(editSelectedTags));
     entry.comment = els.editComment.value.trim();
     closeEditModal();
     render();
@@ -1101,6 +1239,7 @@
   });
 
   let pendingImport = null;
+  let pendingImportTags = [];
   els.importFileInput.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -1110,9 +1249,10 @@
       try { parsed = JSON.parse(evt.target.result); }
       catch (err) { showBackupMsg("That file isn't valid JSON"); return; }
       const incoming = Array.isArray(parsed) ? parsed : parsed.entries;
-      if (!Array.isArray(incoming)) { showBackupMsg('No entries found in that file'); return; }
-      const valid = incoming.filter(e => e && (e.status === 'did' || e.status === 'didnt') && e.date);
-      if (valid.length === 0) { showBackupMsg('No valid entries found in that file'); return; }
+      const importedTags = Array.isArray(parsed) ? [] : normaliseTags(parsed?.settings?.tags);
+      if (!Array.isArray(incoming) && !importedTags.length) { showBackupMsg('No entries or saved tags found in that file'); return; }
+      const valid = Array.isArray(incoming) ? incoming.filter(e => e && (e.status === 'did' || e.status === 'didnt') && e.date) : [];
+      if (valid.length === 0 && !importedTags.length) { showBackupMsg('No valid entries or saved tags found in that file'); return; }
       valid.forEach(e => {
         if (!e.id) e.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
         if (!e.createdAt) e.createdAt = Date.now();
@@ -1120,31 +1260,34 @@
         setEntryTags(e, Array.isArray(e.tags) ? e.tags : e.category);
       });
       pendingImport = valid;
+      pendingImportTags = importedTags;
       els.importSummary.textContent =
-        `Found ${valid.length} entr${valid.length === 1 ? 'y' : 'ies'} in this backup. You currently have ${entries.length}. ` +
+        `Found ${valid.length} entr${valid.length === 1 ? 'y' : 'ies'} and ${importedTags.length} saved tag${importedTags.length === 1 ? '' : 's'} in this backup. You currently have ${entries.length} entries. ` +
         `Merge will add new ones and skip duplicates by ID. Replace will wipe your current log first.`;
       els.importModal.classList.remove('hidden');
     };
     reader.readAsText(file);
   });
-  function closeImportModal() { els.importModal.classList.add('hidden'); pendingImport = null; }
+  function closeImportModal() { els.importModal.classList.add('hidden'); pendingImport = null; pendingImportTags = []; }
   els.importCancelBtn.addEventListener('click', closeImportModal);
   els.importMergeBtn.addEventListener('click', async () => {
     if (!pendingImport) return;
     const existingIds = new Set(entries.map(e => e.id));
     let added = 0;
     pendingImport.forEach(e => { if (!existingIds.has(e.id)) { entries.push(e); existingIds.add(e.id); added++; } });
+    settings.tags = mergeTags(settings.tags, pendingImportTags);
     closeImportModal();
     render();
-    await saveEntries();
+    await Promise.all([saveEntries(), saveSettings()]);
     showBackupMsg(`Merged — added ${added} new entr${added === 1 ? 'y' : 'ies'}`);
   });
   els.importReplaceBtn.addEventListener('click', async () => {
     if (!pendingImport) return;
     entries = [...pendingImport];
+    settings.tags = mergeTags(settings.tags, pendingImportTags);
     closeImportModal();
     render();
-    await saveEntries();
+    await Promise.all([saveEntries(), saveSettings()]);
     showBackupMsg(`Replaced log with ${entries.length} entries`);
   });
 
