@@ -136,32 +136,6 @@
   .search-row input { margin-bottom: 0; flex: 1; }
   .search-row select { margin-bottom: 0; max-width: 130px; }
 
-  .tag-picker { display: flex; flex-wrap: wrap; gap: 7px; min-height: 36px; margin: 4px 0 10px; }
-  .tag-choice {
-    min-height: 34px;
-    padding: 6px 11px;
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    background: var(--card-2);
-    color: var(--muted);
-    font-size: 0.78rem;
-    font-weight: 600;
-    cursor: pointer;
-  }
-  .tag-choice.selected { border-color: var(--accent); background: var(--accent-dim); color: #bcc4ff; }
-  .tag-picker-empty { margin: 2px 0 8px; color: var(--muted); font-size: 0.78rem; }
-  .tag-manager { margin: 2px 0 14px; border: 1px solid var(--border); border-radius: 10px; background: rgba(33,36,47,0.5); }
-  .tag-manager summary { padding: 10px 12px; color: var(--muted); font-size: 0.78rem; font-weight: 600; cursor: pointer; }
-  .tag-manager-body { padding: 0 10px 10px; }
-  .tag-create-row { display: flex; gap: 7px; }
-  .tag-create-row input { min-width: 0; margin: 0; }
-  .tag-create-row button { flex-shrink: 0; padding: 8px 12px; border: 1px solid var(--accent); border-radius: 9px; background: var(--accent-dim); color: #bcc4ff; font-weight: 600; cursor: pointer; }
-  .tag-library { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
-  .tag-library-item { display: inline-flex; align-items: center; gap: 5px; padding: 4px 5px 4px 9px; border-radius: 999px; background: var(--card-2); color: var(--text); font-size: 0.72rem; }
-  .tag-library-item button { width: 22px; height: 22px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--muted); cursor: pointer; }
-  .tag-library-item button:hover { background: var(--red-dim); color: var(--red); }
-  .tag-manager-note { display: block; margin-top: 8px; color: var(--muted); font-size: 0.68rem; line-height: 1.35; }
-
   .entry {
     display: flex;
     gap: 10px;
@@ -177,14 +151,13 @@
   .entry .dot.did { background: var(--green); }
   .entry .dot.didnt { background: var(--red); }
   .entry .content { flex: 1; min-width: 0; }
-  .entry .top-row { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+  .entry .top-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
   .entry .status { font-weight: 600; font-size: 0.9rem; }
   .entry .status.did { color: var(--green); }
   .entry .status.didnt { color: var(--red); }
-  .entry .date { font-size: 0.72rem; color: var(--muted); }
+  .entry .date { font-size: 0.72rem; color: var(--muted); white-space: nowrap; }
   .entry .comment { font-size: 0.85rem; color: var(--text); margin-top: 3px; word-break: break-word; }
   .entry .comment.empty { color: var(--muted); font-style: italic; }
-  .entry .tag-list { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
   .entry .tag {
     display: inline-block;
     font-size: 0.68rem;
@@ -192,6 +165,7 @@
     background: var(--accent-dim);
     border-radius: 6px;
     padding: 1px 7px;
+    margin-top: 5px;
   }
   .del-btn {
     background: none;
@@ -304,6 +278,21 @@
   .modal-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
   .modal-btn.danger { background: var(--red-dim); border-color: var(--red); color: var(--red); }
 
+  .insight-item {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.86rem;
+    line-height: 1.4;
+  }
+  .insight-item:last-child { border-bottom: none; }
+  .insight-icon { flex-shrink: 0; font-size: 1rem; margin-top: -1px; }
+  .insight-item.good .insight-text strong { color: var(--green); }
+  .insight-item.bad .insight-text strong { color: var(--red); }
+  .insight-item.neutral .insight-text strong { color: var(--accent); }
+
   .loading { text-align: center; color: var(--muted); padding: 40px 0; font-size: 0.85rem; }
 </style>
 </head>
@@ -332,16 +321,12 @@
       <label class="field-label" for="entryDate">Date</label>
       <input type="date" id="entryDate">
 
-      <span class="field-label" id="entryTagsLabel">Tags (optional)</span>
-      <div class="tag-picker" id="entryTagPicker" role="group" aria-labelledby="entryTagsLabel"></div>
-      <details class="tag-manager">
-        <summary>Manage tags</summary>
-        <div class="tag-manager-body">
-          <div class="tag-create-row"><input type="text" id="newTagInput" maxlength="40" placeholder="Create a tag"><button type="button" id="addTagBtn">Add tag</button></div>
-          <div class="tag-library" id="tagLibrary"></div>
-          <small class="tag-manager-note">Removing a saved tag does not change existing entries; tags already in use remain selectable.</small>
-        </div>
-      </details>
+      <label class="field-label" for="entryCategory">Category / tag (optional)</label>
+      <input type="text" id="entryCategory" list="categoryList" placeholder="e.g. gym, no smoking, chores">
+      <datalist id="categoryList"></datalist>
+
+      <label class="field-label" for="entryCount">Times achieved (only applies to "Did It")</label>
+      <input type="number" id="entryCount" min="1" step="1" value="1">
 
       <label class="field-label" for="entryComment">Comment (optional)</label>
       <textarea id="entryComment" placeholder="Any notes about this one…"></textarea>
@@ -354,7 +339,7 @@
       <button type="button" class="backup-btn" id="exportBtn">⬇ Export JSON</button>
       <button type="button" class="backup-btn" id="exportCsvBtn">⬇ Export CSV</button>
       <button type="button" class="backup-btn" id="importBtn">⬆ Import</button>
-      <input type="file" id="importFileInput" accept="application/json,.json">
+      <input type="file" id="importFileInput" accept="application/json,.json,text/csv,.csv">
     </div>
     <div class="backup-msg" id="backupMsg"></div>
 
@@ -363,12 +348,16 @@
     </div>
     <div class="backup-msg" id="installMsg"></div>
 
+    <div class="backup-row">
+      <button type="button" class="backup-btn" id="resetBtn" style="flex:none; width:100%; background:var(--red-dim); border-color:var(--red); color:var(--red);">🗑 Reset All Data</button>
+    </div>
+
     <h2 class="section-title">History</h2>
 
     <div class="search-row">
-      <input type="text" id="searchInput" placeholder="Search comments or tags…">
+      <input type="text" id="searchInput" placeholder="Search comments…">
       <select id="categoryFilter">
-        <option value="">All tags</option>
+        <option value="">All categories</option>
       </select>
     </div>
 
@@ -396,6 +385,9 @@
       </div>
     </div>
 
+    <h2 class="section-title">Insights</h2>
+    <div class="bar-wrap" id="insightsWrap"></div>
+
     <h2 class="section-title" style="margin-top:0;">Goal</h2>
     <div class="goal-card">
       <div class="goal-row">
@@ -410,7 +402,7 @@
     <div class="stats-grid">
       <div class="stat-box green"><div class="num" id="statDidCount">0</div><div class="label">Did It</div></div>
       <div class="stat-box red"><div class="num" id="statDidntCount">0</div><div class="label">Didn't</div></div>
-      <div class="stat-box"><div class="num" id="statTotal">0</div><div class="label">Total Logged</div></div>
+      <div class="stat-box"><div class="num" id="statTotal">0</div><div class="label">Total Occurrences</div></div>
       <div class="stat-box"><div class="num" id="statRate">0%</div><div class="label">Success Rate</div></div>
     </div>
 
@@ -439,7 +431,7 @@
     <h2 class="section-title">By Day of Week</h2>
     <div class="bar-wrap"><div class="dow-grid" id="dowGrid"></div></div>
 
-    <h2 class="section-title">By Tag</h2>
+    <h2 class="section-title">By Category</h2>
     <div class="bar-wrap" id="categoryWrap"></div>
 
   </div>
@@ -467,8 +459,10 @@
     </div>
     <label class="field-label" for="editDate">Date</label>
     <input type="date" id="editDate">
-    <span class="field-label" id="editTagsLabel">Tags</span>
-    <div class="tag-picker" id="editTagPicker" role="group" aria-labelledby="editTagsLabel"></div>
+    <label class="field-label" for="editCategory">Category / tag</label>
+    <input type="text" id="editCategory" list="categoryList">
+    <label class="field-label" for="editCount">Times achieved (only applies to "Did It")</label>
+    <input type="number" id="editCount" min="1" step="1">
     <label class="field-label" for="editComment">Comment</label>
     <textarea id="editComment"></textarea>
     <div class="btn-row">
@@ -479,16 +473,33 @@
   </div>
 </div>
 
+<div class="modal-overlay hidden" id="resetModal">
+  <div class="modal-box">
+    <h3>Reset all data?</h3>
+    <p>This permanently deletes every logged entry and your goal setting from this device/browser. There's no undo. Export a backup first if you want to keep a copy.</p>
+    <div class="modal-btns">
+      <button class="modal-btn danger" id="resetConfirmBtn">Yes, delete everything</button>
+      <button class="modal-btn" id="resetCancelBtn">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <script>
 (function() {
   const STORAGE_KEY = 'did-it-entries';
   const SETTINGS_KEY = 'did-it-settings';
   let entries = [];
-  let settings = { targetRate: null, tags: [] };
+  let settings = { targetRate: null };
   let selectedStatus = null;
-  let selectedTags = new Set();
+
+  function entryCount(e) {
+    const n = Number(e.count);
+    return (Number.isFinite(n) && n > 0) ? Math.round(n) : 1;
+  }
+  function sumCount(list, status) {
+    return list.reduce((sum, e) => sum + (status ? (e.status === status ? entryCount(e) : 0) : entryCount(e)), 0);
+  }
   let editSelectedStatus = null;
-  let editSelectedTags = new Set();
   let editingId = null;
 
   const els = {
@@ -497,16 +508,15 @@
     btnDid: document.getElementById('btnDid'),
     btnDidnt: document.getElementById('btnDidnt'),
     entryDate: document.getElementById('entryDate'),
-    entryTagPicker: document.getElementById('entryTagPicker'),
-    newTagInput: document.getElementById('newTagInput'),
-    addTagBtn: document.getElementById('addTagBtn'),
-    tagLibrary: document.getElementById('tagLibrary'),
+    entryCategory: document.getElementById('entryCategory'),
+    entryCount: document.getElementById('entryCount'),
     entryComment: document.getElementById('entryComment'),
     saveBtn: document.getElementById('saveBtn'),
     saveMsg: document.getElementById('saveMsg'),
     entryList: document.getElementById('entryList'),
     searchInput: document.getElementById('searchInput'),
     categoryFilter: document.getElementById('categoryFilter'),
+    categoryList: document.getElementById('categoryList'),
     statDidCount: document.getElementById('statDidCount'),
     statDidntCount: document.getElementById('statDidntCount'),
     statTotal: document.getElementById('statTotal'),
@@ -521,6 +531,7 @@
     monthWrap: document.getElementById('monthWrap'),
     dowGrid: document.getElementById('dowGrid'),
     categoryWrap: document.getElementById('categoryWrap'),
+    insightsWrap: document.getElementById('insightsWrap'),
     rollingChartWrap: document.getElementById('rollingChartWrap'),
     digestWeekDid: document.getElementById('digestWeekDid'),
     digestWeekDidnt: document.getElementById('digestWeekDidnt'),
@@ -547,7 +558,8 @@
     editBtnDid: document.getElementById('editBtnDid'),
     editBtnDidnt: document.getElementById('editBtnDidnt'),
     editDate: document.getElementById('editDate'),
-    editTagPicker: document.getElementById('editTagPicker'),
+    editCategory: document.getElementById('editCategory'),
+    editCount: document.getElementById('editCount'),
     editComment: document.getElementById('editComment'),
     editDeleteBtn: document.getElementById('editDeleteBtn'),
     editCancelBtn: document.getElementById('editCancelBtn'),
@@ -555,6 +567,10 @@
     installRow: document.getElementById('installRow'),
     installBtn: document.getElementById('installBtn'),
     installMsg: document.getElementById('installMsg'),
+    resetBtn: document.getElementById('resetBtn'),
+    resetModal: document.getElementById('resetModal'),
+    resetConfirmBtn: document.getElementById('resetConfirmBtn'),
+    resetCancelBtn: document.getElementById('resetCancelBtn'),
   };
 
   function todayStr() {
@@ -572,6 +588,7 @@
   }
 
   els.entryDate.value = todayStr();
+  els.entryCount.disabled = true;
 
   // ---------- tabs ----------
   els.tabLogBtn.addEventListener('click', () => switchTab('log'));
@@ -589,6 +606,8 @@
     els.btnDid.classList.toggle('active', status === 'did');
     els.btnDidnt.classList.toggle('active', status === 'didnt');
     els.saveBtn.disabled = !status;
+    els.entryCount.disabled = (status !== 'did');
+    if (status !== 'did') els.entryCount.value = '1';
   }
   els.btnDid.addEventListener('click', () => selectStatus('did'));
   els.btnDidnt.addEventListener('click', () => selectStatus('didnt'));
@@ -630,13 +649,28 @@
     }
     return false;
   }
+  async function storageRemove(key) {
+    if (hasLocalStorage) {
+      try { window.localStorage.removeItem(key); return true; }
+      catch (e) { return false; }
+    }
+    if (window.storage) {
+      try { await window.storage.delete(key, false); return true; }
+      catch (e) { return false; }
+    }
+    return false;
+  }
 
   async function loadEntries() {
     try {
       const raw = await storageGet(STORAGE_KEY);
       entries = raw ? JSON.parse(raw) : [];
     } catch (e) { entries = []; }
-    entries.forEach(e => setEntryTags(e, Array.isArray(e.tags) ? e.tags : e.category));
+    entries.forEach(e => {
+      if (typeof e.category !== 'string') e.category = '';
+      if (typeof e.count !== 'number' || !isFinite(e.count) || e.count < 1) e.count = 1;
+      e.count = Math.round(e.count);
+    });
   }
   async function saveEntries() {
     return await storageSet(STORAGE_KEY, JSON.stringify(entries));
@@ -644,10 +678,8 @@
   async function loadSettings() {
     try {
       const raw = await storageGet(SETTINGS_KEY);
-      settings = raw ? JSON.parse(raw) : { targetRate: null, tags: [] };
-    } catch (e) { settings = { targetRate: null, tags: [] }; }
-    if (!settings || typeof settings !== 'object') settings = { targetRate: null, tags: [] };
-    settings.tags = normaliseTags(settings.tags);
+      settings = raw ? JSON.parse(raw) : { targetRate: null };
+    } catch (e) { settings = { targetRate: null }; }
   }
   async function saveSettings() {
     return await storageSet(SETTINGS_KEY, JSON.stringify(settings));
@@ -656,165 +688,37 @@
   function formatDateDisplay(dateStr) {
     const [y, m, d] = dateStr.split('-').map(Number);
     const dt = new Date(y, m - 1, d);
-    return dt.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    return dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
   }
 
-  function normaliseTags(value) {
-    const raw = Array.isArray(value) ? value : String(value || '').split(',');
-    const tags = [];
-    const seen = new Set();
-    raw.forEach(item => {
-      String(item || '').split(',').forEach(part => {
-        const tag = part.trim();
-        const key = tag.toLocaleLowerCase();
-        if (!tag || seen.has(key)) return;
-        seen.add(key);
-        tags.push(tag);
-      });
-    });
-    return tags;
+  function getCategories() {
+    const set = new Set();
+    entries.forEach(e => { if (e.category) set.add(e.category); });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
   }
-
-  function entryTags(entry) {
-    return normaliseTags(Array.isArray(entry.tags) ? entry.tags : entry.category);
-  }
-
-  function setEntryTags(entry, value) {
-    const tags = normaliseTags(value);
-    entry.tags = tags;
-    // Keep the first tag for compatibility with older exported backups.
-    entry.category = tags[0] || '';
-    return tags;
-  }
-
-  function getTags() {
-    const tagsByKey = new Map();
-    entries.forEach(e => entryTags(e).forEach(tag => {
-      const key = tag.toLocaleLowerCase();
-      if (!tagsByKey.has(key)) tagsByKey.set(key, tag);
-    }));
-    return Array.from(tagsByKey.values()).sort((a, b) => a.localeCompare(b));
-  }
-
-  function mergeTags(...values) {
-    return normaliseTags(values.flatMap(value => Array.isArray(value) ? value : [value]));
-  }
-
-  function getAvailableTags() {
-    return mergeTags(settings.tags, getTags()).sort((a, b) => a.localeCompare(b));
-  }
-
-  function hasSelectedTag(selection, tag) {
-    const key = tag.toLocaleLowerCase();
-    return Array.from(selection).some(value => value.toLocaleLowerCase() === key);
-  }
-
-  function toggleSelectedTag(selection, tag) {
-    const key = tag.toLocaleLowerCase();
-    const existing = Array.from(selection).find(value => value.toLocaleLowerCase() === key);
-    if (existing) selection.delete(existing); else selection.add(tag);
-  }
-
-  function renderTagPicker(container, selection) {
-    container.innerHTML = '';
-    const available = getAvailableTags();
-    if (!available.length) {
-      const empty = document.createElement('p');
-      empty.className = 'tag-picker-empty';
-      empty.textContent = 'Create your first tag below.';
-      container.appendChild(empty);
-      return;
-    }
-    available.forEach(tag => {
-      const selected = hasSelectedTag(selection, tag);
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'tag-choice' + (selected ? ' selected' : '');
-      button.setAttribute('aria-pressed', String(selected));
-      button.textContent = tag;
-      button.addEventListener('click', () => {
-        toggleSelectedTag(selection, tag);
-        renderTagControls();
-      });
-      container.appendChild(button);
-    });
-  }
-
-  function renderTagLibrary() {
-    els.tagLibrary.innerHTML = '';
-    if (!settings.tags.length) {
-      const empty = document.createElement('span');
-      empty.className = 'tag-picker-empty';
-      empty.textContent = 'No saved tags yet.';
-      els.tagLibrary.appendChild(empty);
-      return;
-    }
-    settings.tags.forEach(tag => {
-      const item = document.createElement('span');
-      item.className = 'tag-library-item';
-      item.append(document.createTextNode(tag));
-      const remove = document.createElement('button');
-      remove.type = 'button';
-      remove.setAttribute('aria-label', `Remove ${tag} from saved tags`);
-      remove.textContent = '×';
-      remove.addEventListener('click', async () => {
-        settings.tags = settings.tags.filter(value => value.toLocaleLowerCase() !== tag.toLocaleLowerCase());
-        const selected = Array.from(selectedTags).find(value => value.toLocaleLowerCase() === tag.toLocaleLowerCase());
-        if (selected) selectedTags.delete(selected);
-        await saveSettings();
-        render();
-      });
-      item.appendChild(remove);
-      els.tagLibrary.appendChild(item);
-    });
-  }
-
-  function renderTagControls() {
-    renderTagPicker(els.entryTagPicker, selectedTags);
-    renderTagPicker(els.editTagPicker, editSelectedTags);
-    renderTagLibrary();
-  }
-
-  async function addSavedTags() {
-    const added = normaliseTags(els.newTagInput.value);
-    if (!added.length) return;
-    const existing = getAvailableTags();
-    const canonicalAdded = added.map(tag => existing.find(value => value.toLocaleLowerCase() === tag.toLocaleLowerCase()) || tag);
-    settings.tags = mergeTags(settings.tags, canonicalAdded);
-    const available = getAvailableTags();
-    canonicalAdded.forEach(tag => {
-      const canonical = available.find(value => value.toLocaleLowerCase() === tag.toLocaleLowerCase()) || tag;
-      if (!hasSelectedTag(selectedTags, canonical)) selectedTags.add(canonical);
-    });
-    els.newTagInput.value = '';
-    await saveSettings();
-    render();
-  }
-
-  els.addTagBtn.addEventListener('click', addSavedTags);
-  els.newTagInput.addEventListener('keydown', event => {
-    if (event.key !== 'Enter') return;
-    event.preventDefault();
-    addSavedTags();
-  });
 
   function refreshCategoryUI() {
-    const tags = getTags();
+    const cats = getCategories();
     const currentFilter = els.categoryFilter.value;
-    els.categoryFilter.innerHTML = '<option value="">All tags</option>';
-    tags.forEach(tag => {
+    els.categoryList.innerHTML = '';
+    cats.forEach(c => {
       const opt = document.createElement('option');
-      opt.value = tag;
-      opt.textContent = tag;
+      opt.value = c;
+      els.categoryList.appendChild(opt);
+    });
+    els.categoryFilter.innerHTML = '<option value="">All categories</option>';
+    cats.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c;
+      opt.textContent = c;
       els.categoryFilter.appendChild(opt);
     });
-    if (tags.includes(currentFilter)) els.categoryFilter.value = currentFilter;
+    if (cats.includes(currentFilter)) els.categoryFilter.value = currentFilter;
   }
 
   // ---------- render ----------
   function render() {
     refreshCategoryUI();
-    renderTagControls();
 
     const chrono = [...entries].sort((a, b) => {
       if (a.date !== b.date) return a.date.localeCompare(b.date);
@@ -822,10 +726,10 @@
     });
     const sortedDesc = [...chrono].reverse();
 
-    // Core stats
-    const didCount = entries.filter(e => e.status === 'did').length;
-    const didntCount = entries.filter(e => e.status === 'didnt').length;
-    const total = entries.length;
+    // Core stats (weighted by "times achieved" count on each entry)
+    const didCount = sumCount(entries, 'did');
+    const didntCount = sumCount(entries, 'didnt');
+    const total = didCount + didntCount;
     const rate = total ? Math.round((didCount / total) * 100) : 0;
 
     els.statDidCount.textContent = didCount;
@@ -862,14 +766,17 @@
     els.statBestStreak.textContent = longestDid;
     els.statWorstStreak.textContent = longestDidnt;
 
+    renderInsights(entries, chrono, rate, longestDid, longestDidnt, streakDid, streakDidnt);
+
     // Digest: this week / this month
     const today = todayStr();
     const weekAgo = dateNDaysAgo(6);
     const monthKeyNow = today.slice(0, 7);
     let weekDid = 0, weekDidnt = 0, monthDid = 0, monthDidnt = 0;
     entries.forEach(e => {
-      if (e.date >= weekAgo && e.date <= today) { if (e.status === 'did') weekDid++; else weekDidnt++; }
-      if (e.date.slice(0, 7) === monthKeyNow) { if (e.status === 'did') monthDid++; else monthDidnt++; }
+      const c = entryCount(e);
+      if (e.date >= weekAgo && e.date <= today) { if (e.status === 'did') weekDid += c; else weekDidnt += c; }
+      if (e.date.slice(0, 7) === monthKeyNow) { if (e.status === 'did') monthDid += c; else monthDidnt += c; }
     });
     els.digestWeekDid.textContent = weekDid;
     els.digestWeekDidnt.textContent = weekDidnt;
@@ -910,7 +817,7 @@
     entries.forEach(e => {
       const key = e.date.slice(0, 7);
       if (!monthMap[key]) monthMap[key] = { did: 0, didnt: 0 };
-      monthMap[key][e.status === 'did' ? 'did' : 'didnt']++;
+      monthMap[key][e.status === 'did' ? 'did' : 'didnt'] += entryCount(e);
     });
     const monthKeys = Object.keys(monthMap).sort().reverse();
     els.monthWrap.innerHTML = '';
@@ -942,8 +849,9 @@
     entries.forEach(e => {
       const [y, m, d] = e.date.split('-').map(Number);
       const dow = new Date(y, m - 1, d).getDay();
-      dowStats[dow].total++;
-      if (e.status === 'did') dowStats[dow].did++;
+      const c = entryCount(e);
+      dowStats[dow].total += c;
+      if (e.status === 'did') dowStats[dow].did += c;
     });
     els.dowGrid.innerHTML = '';
     dowNames.forEach((name, i) => {
@@ -959,16 +867,14 @@
       els.dowGrid.appendChild(cell);
     });
 
-    // By tag
-    const catMap = Object.create(null);
+    // By category
+    const catMap = {};
     entries.forEach(e => {
-      const tags = entryTags(e);
-      (tags.length ? tags : ['(untagged)']).forEach(tag => {
-        const key = tag.toLocaleLowerCase();
-        if (!catMap[key]) catMap[key] = { label: tag, did: 0, total: 0 };
-        catMap[key].total++;
-        if (e.status === 'did') catMap[key].did++;
-      });
+      const key = e.category ? e.category : '(uncategorized)';
+      if (!catMap[key]) catMap[key] = { did: 0, total: 0 };
+      const c = entryCount(e);
+      catMap[key].total += c;
+      if (e.status === 'did') catMap[key].did += c;
     });
     const catKeys = Object.keys(catMap).sort((a, b) => catMap[b].total - catMap[a].total);
     els.categoryWrap.innerHTML = '';
@@ -976,10 +882,10 @@
       const empty = document.createElement('div'); empty.className = 'empty-state'; empty.textContent = 'No data yet'; els.categoryWrap.appendChild(empty);
     } else {
       catKeys.forEach(key => {
-        const { label, did, total: t } = catMap[key];
+        const { did, total: t } = catMap[key];
         const pct = t ? Math.round((did / t) * 100) : 0;
         const row = document.createElement('div'); row.className = 'cat-row';
-        const lbl = document.createElement('div'); lbl.className = 'cat-label'; lbl.textContent = `${label} (${t})`; row.appendChild(lbl);
+        const lbl = document.createElement('div'); lbl.className = 'cat-label'; lbl.textContent = `${key} (${t})`; row.appendChild(lbl);
         const track = document.createElement('div'); track.className = 'cat-bar-track';
         const segG = document.createElement('div'); segG.className = 'bar-seg green'; segG.style.width = pct + '%'; track.appendChild(segG);
         const segR = document.createElement('div'); segR.className = 'bar-seg red'; segR.style.width = (100 - pct) + '%'; track.appendChild(segR);
@@ -993,6 +899,165 @@
     renderHistory(sortedDesc);
   }
 
+  function daysBetween(d1, d2) {
+    const [y1, m1, day1] = d1.split('-').map(Number);
+    const [y2, m2, day2] = d2.split('-').map(Number);
+    const t1 = Date.UTC(y1, m1 - 1, day1);
+    const t2 = Date.UTC(y2, m2 - 1, day2);
+    return Math.round((t2 - t1) / 86400000);
+  }
+
+  function renderInsights(allEntries, chronoEntries, overallRate, bestStreak, worstStreak, curStreakDid, curStreakDidnt) {
+    els.insightsWrap.innerHTML = '';
+    const total = allEntries.length;
+
+    if (total < 5) {
+      const empty = document.createElement('div');
+      empty.className = 'empty-state';
+      empty.textContent = 'Log a few more entries and insights will start showing up here.';
+      els.insightsWrap.appendChild(empty);
+      return;
+    }
+
+    const insights = [];
+    const dowNames = ['Sundays', 'Mondays', 'Tuesdays', 'Wednesdays', 'Thursdays', 'Fridays', 'Saturdays'];
+
+    // --- Best / worst weekday (min 3 entries on that weekday) ---
+    const dowStats = dowNames.map(() => ({ did: 0, total: 0 }));
+    allEntries.forEach(e => {
+      const [y, m, d] = e.date.split('-').map(Number);
+      const dow = new Date(y, m - 1, d).getDay();
+      const c = entryCount(e);
+      dowStats[dow].total += c;
+      if (e.status === 'did') dowStats[dow].did += c;
+    });
+    const qualifyingDow = dowStats.map((s, i) => ({ i, rate: s.total ? s.did / s.total : null, n: s.total })).filter(x => x.n >= 3);
+    if (qualifyingDow.length >= 2) {
+      const best = qualifyingDow.reduce((a, b) => (b.rate > a.rate ? b : a));
+      const worst = qualifyingDow.reduce((a, b) => (b.rate < a.rate ? b : a));
+      if (best.i !== worst.i && best.rate > worst.rate) {
+        insights.push({ type: 'good', icon: '📅', html: `<strong>${dowNames[best.i]}</strong> are your strongest day — ${Math.round(best.rate * 100)}% success (n=${best.n}).` });
+        insights.push({ type: 'bad', icon: '📅', html: `<strong>${dowNames[worst.i]}</strong> are your toughest day — ${Math.round(worst.rate * 100)}% success (n=${worst.n}).` });
+      }
+    }
+
+    // --- Best / worst category (min 3 entries) ---
+    const catMap = {};
+    allEntries.forEach(e => {
+      const key = e.category ? e.category : null;
+      if (!key) return;
+      if (!catMap[key]) catMap[key] = { did: 0, total: 0 };
+      const c = entryCount(e);
+      catMap[key].total += c;
+      if (e.status === 'did') catMap[key].did += c;
+    });
+    const catList = Object.keys(catMap).map(k => ({ name: k, rate: catMap[k].did / catMap[k].total, n: catMap[k].total })).filter(c => c.n >= 3);
+    if (catList.length >= 2) {
+      const bestCat = catList.reduce((a, b) => (b.rate > a.rate ? b : a));
+      const worstCat = catList.reduce((a, b) => (b.rate < a.rate ? b : a));
+      if (bestCat.name !== worstCat.name && bestCat.rate > worstCat.rate) {
+        insights.push({ type: 'good', icon: '🏷️', html: `Best category: <strong>${bestCat.name}</strong> at ${Math.round(bestCat.rate * 100)}% (n=${bestCat.n}).` });
+        insights.push({ type: 'bad', icon: '🏷️', html: `Weakest category: <strong>${worstCat.name}</strong> at ${Math.round(worstCat.rate * 100)}% (n=${worstCat.n}).` });
+      }
+    } else if (catList.length === 1) {
+      insights.push({ type: 'neutral', icon: '🏷️', html: `Your only tracked category so far is <strong>${catList[0].name}</strong>, at ${Math.round(catList[0].rate * 100)}%.` });
+    }
+
+    // --- Recent trend: last 10 entries vs all-time ---
+    if (total >= 10) {
+      const recent = chronoEntries.slice(-10);
+      const recentRate = Math.round((sumCount(recent, 'did') / sumCount(recent)) * 100);
+      const diff = recentRate - overallRate;
+      if (Math.abs(diff) >= 10) {
+        if (diff > 0) {
+          insights.push({ type: 'good', icon: '📈', html: `Trending up — your last 10 entries are running at <strong>${recentRate}%</strong>, ${diff}pt above your all-time rate.` });
+        } else {
+          insights.push({ type: 'bad', icon: '📉', html: `Trending down — your last 10 entries are running at <strong>${recentRate}%</strong>, ${Math.abs(diff)}pt below your all-time rate.` });
+        }
+      } else {
+        insights.push({ type: 'neutral', icon: '➡️', html: `Steady lately — your last 10 entries (${recentRate}%) are close to your all-time rate (${overallRate}%).` });
+      }
+    }
+
+    // --- Streak record proximity ---
+    if (curStreakDid > 0 && bestStreak > 0) {
+      if (curStreakDid >= bestStreak) {
+        insights.push({ type: 'good', icon: '🔥', html: `Your current ${curStreakDid}-day "did" streak matches or beats your all-time best!` });
+      } else if (bestStreak - curStreakDid <= 2) {
+        insights.push({ type: 'good', icon: '🔥', html: `You're ${bestStreak - curStreakDid} away from tying your best-ever "did" streak of <strong>${bestStreak}</strong>.` });
+      }
+    }
+    if (curStreakDidnt >= 3) {
+      insights.push({ type: 'bad', icon: '⚠️', html: `You're <strong>${curStreakDidnt}</strong> in a row on "didn't" right now — your longest such streak is ${worstStreak}.` });
+    }
+
+    // --- Logging consistency (coverage since first entry) ---
+    const firstDate = chronoEntries[0].date;
+    const today = todayStr();
+    const spanDays = daysBetween(firstDate, today) + 1;
+    if (spanDays >= 14) {
+      const coverage = Math.round((total / spanDays) * 100);
+      if (coverage < 40) {
+        insights.push({ type: 'neutral', icon: '🗓️', html: `You've logged ${total} of the ${spanDays} days since your first entry (${coverage}% coverage) — logging more consistently will sharpen these stats.` });
+      } else if (coverage >= 80) {
+        insights.push({ type: 'good', icon: '🗓️', html: `Strong logging habit — you've covered ${coverage}% of days since you started (${total}/${spanDays}).` });
+      }
+    }
+
+    // --- Longest gap between log dates ---
+    const uniqueDates = Array.from(new Set(allEntries.map(e => e.date))).sort();
+    let longestGap = 0, gapStart = null, gapEnd = null;
+    for (let i = 1; i < uniqueDates.length; i++) {
+      const gap = daysBetween(uniqueDates[i - 1], uniqueDates[i]);
+      if (gap > longestGap) { longestGap = gap; gapStart = uniqueDates[i - 1]; gapEnd = uniqueDates[i]; }
+    }
+    if (longestGap >= 14) {
+      insights.push({ type: 'neutral', icon: '⏳', html: `Longest gap without a log entry: <strong>${longestGap} days</strong> (${formatDateDisplay(gapStart)} → ${formatDateDisplay(gapEnd)}).` });
+    }
+
+    // --- Weekday vs weekend ---
+    const weekdayStats = { did: 0, total: 0 };
+    const weekendStats = { did: 0, total: 0 };
+    allEntries.forEach(e => {
+      const [y, m, d] = e.date.split('-').map(Number);
+      const dow = new Date(y, m - 1, d).getDay();
+      const bucket = (dow === 0 || dow === 6) ? weekendStats : weekdayStats;
+      const c = entryCount(e);
+      bucket.total += c;
+      if (e.status === 'did') bucket.did += c;
+    });
+    if (weekdayStats.total >= 3 && weekendStats.total >= 3) {
+      const wdRate = Math.round((weekdayStats.did / weekdayStats.total) * 100);
+      const weRate = Math.round((weekendStats.did / weekendStats.total) * 100);
+      if (Math.abs(wdRate - weRate) >= 15) {
+        const better = wdRate > weRate ? 'weekdays' : 'weekends';
+        insights.push({ type: 'neutral', icon: '📆', html: `You do noticeably better on <strong>${better}</strong> — weekdays ${wdRate}% vs weekends ${weRate}%.` });
+      }
+    }
+
+    if (insights.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'empty-state';
+      empty.textContent = 'No standout patterns yet — keep logging and insights will appear here.';
+      els.insightsWrap.appendChild(empty);
+      return;
+    }
+
+    insights.forEach(ins => {
+      const row = document.createElement('div');
+      row.className = 'insight-item ' + ins.type;
+      const icon = document.createElement('div');
+      icon.className = 'insight-icon';
+      icon.textContent = ins.icon;
+      const text = document.createElement('div');
+      text.className = 'insight-text';
+      text.innerHTML = ins.html;
+      row.appendChild(icon);
+      row.appendChild(text);
+      els.insightsWrap.appendChild(row);
+    });
+  }
+
   function renderRollingChart(chrono) {
     els.rollingChartWrap.innerHTML = '';
     if (chrono.length < 2) {
@@ -1004,8 +1069,9 @@
     for (let i = 0; i < chrono.length; i++) {
       const start = Math.max(0, i - windowSize + 1);
       const slice = chrono.slice(start, i + 1);
-      const didN = slice.filter(e => e.status === 'did').length;
-      points.push(Math.round((didN / slice.length) * 100));
+      const didN = sumCount(slice, 'did');
+      const totalN = sumCount(slice);
+      points.push(Math.round((didN / totalN) * 100));
     }
     const displayPoints = points.slice(-20);
     const w = 600, h = 160, pad = 10;
@@ -1040,9 +1106,8 @@
     const q = els.searchInput.value.trim().toLowerCase();
     const catFilter = els.categoryFilter.value;
     const filtered = sortedDesc.filter(e => {
-      const tags = entryTags(e);
-      if (catFilter && !tags.some(tag => tag.toLocaleLowerCase() === catFilter.toLocaleLowerCase())) return false;
-      if (q && !(e.comment || '').toLowerCase().includes(q) && !tags.join(' ').toLowerCase().includes(q)) return false;
+      if (catFilter && e.category !== catFilter) return false;
+      if (q && !(e.comment || '').toLowerCase().includes(q) && !(e.category || '').toLowerCase().includes(q)) return false;
       return true;
     });
 
@@ -1064,7 +1129,7 @@
       const content = document.createElement('div'); content.className = 'content';
       const topRow = document.createElement('div'); topRow.className = 'top-row';
       const status = document.createElement('div'); status.className = 'status ' + entry.status;
-      status.textContent = entry.status === 'did' ? 'We Did It' : "We Didn't";
+      status.textContent = (entry.status === 'did' ? 'We Did It' : "We Didn't") + (entryCount(entry) > 1 ? ` ×${entryCount(entry)}` : '');
       topRow.appendChild(status);
       const date = document.createElement('div'); date.className = 'date'; date.textContent = formatDateDisplay(entry.date);
       topRow.appendChild(date);
@@ -1075,17 +1140,11 @@
       comment.textContent = entry.comment || 'No comment';
       content.appendChild(comment);
 
-      const tags = entryTags(entry);
-      if (tags.length) {
-        const tagList = document.createElement('div');
-        tagList.className = 'tag-list';
-        tags.forEach(value => {
-          const tag = document.createElement('span');
-          tag.className = 'tag';
-          tag.textContent = value;
-          tagList.appendChild(tag);
-        });
-        content.appendChild(tagList);
+      if (entry.category) {
+        const tag = document.createElement('div');
+        tag.className = 'tag';
+        tag.textContent = entry.category;
+        content.appendChild(tag);
       }
 
       row.appendChild(content);
@@ -1114,20 +1173,22 @@
     if (!selectedStatus) return;
     const date = els.entryDate.value || todayStr();
     const comment = els.entryComment.value.trim();
-    const tags = normaliseTags(Array.from(selectedTags));
+    const category = els.entryCategory.value.trim();
+    let count = parseInt(els.entryCount.value, 10);
+    if (!Number.isFinite(count) || count < 1) count = 1;
+    if (selectedStatus !== 'did') count = 1;
 
     const entry = {
       id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
       status: selectedStatus,
       date: date,
-      tags: tags,
-      category: tags[0] || '',
+      count: count,
+      category: category,
       comment: comment,
       createdAt: Date.now()
     };
 
     entries.push(entry);
-    selectedTags.clear();
     render();
 
     els.saveBtn.disabled = true;
@@ -1137,6 +1198,8 @@
     setTimeout(() => { els.saveMsg.textContent = ''; }, 1800);
 
     els.entryComment.value = '';
+    els.entryCategory.value = '';
+    els.entryCount.value = '1';
     selectStatus(null);
     els.entryDate.value = todayStr();
   });
@@ -1150,23 +1213,26 @@
     els.editBtnDid.classList.toggle('active', entry.status === 'did');
     els.editBtnDidnt.classList.toggle('active', entry.status === 'didnt');
     els.editDate.value = entry.date;
-    editSelectedTags = new Set(entryTags(entry));
+    els.editCategory.value = entry.category || '';
+    els.editCount.value = entryCount(entry);
+    els.editCount.disabled = (entry.status !== 'did');
     els.editComment.value = entry.comment || '';
-    renderTagControls();
     els.editModal.classList.remove('hidden');
   }
   function closeEditModal() {
     els.editModal.classList.add('hidden');
     editingId = null;
-    editSelectedTags.clear();
   }
   els.editBtnDid.addEventListener('click', () => {
     editSelectedStatus = 'did';
     els.editBtnDid.classList.add('active'); els.editBtnDidnt.classList.remove('active');
+    els.editCount.disabled = false;
   });
   els.editBtnDidnt.addEventListener('click', () => {
     editSelectedStatus = 'didnt';
     els.editBtnDidnt.classList.add('active'); els.editBtnDid.classList.remove('active');
+    els.editCount.disabled = true;
+    els.editCount.value = '1';
   });
   els.editCancelBtn.addEventListener('click', closeEditModal);
   els.editDeleteBtn.addEventListener('click', async () => {
@@ -1181,12 +1247,34 @@
     if (!entry) { closeEditModal(); return; }
     entry.status = editSelectedStatus || entry.status;
     entry.date = els.editDate.value || entry.date;
-    setEntryTags(entry, Array.from(editSelectedTags));
+    entry.category = els.editCategory.value.trim();
+    let count = parseInt(els.editCount.value, 10);
+    if (!Number.isFinite(count) || count < 1) count = 1;
+    if (entry.status !== 'did') count = 1;
+    entry.count = count;
     entry.comment = els.editComment.value.trim();
     closeEditModal();
     render();
     await saveEntries();
     showBackupMsg('Entry updated ✓');
+  });
+
+  // ---------- reset all data ----------
+  els.resetBtn.addEventListener('click', () => {
+    els.resetModal.classList.remove('hidden');
+  });
+  els.resetCancelBtn.addEventListener('click', () => {
+    els.resetModal.classList.add('hidden');
+  });
+  els.resetConfirmBtn.addEventListener('click', async () => {
+    entries = [];
+    settings = { targetRate: null };
+    els.resetModal.classList.add('hidden');
+    els.goalInput.value = '';
+    render();
+    await saveEntries();
+    await saveSettings();
+    showBackupMsg('All data reset ✓');
   });
 
   // ---------- goal ----------
@@ -1224,9 +1312,9 @@
     return s;
   }
   els.exportCsvBtn.addEventListener('click', () => {
-    const header = ['date', 'status', 'tags', 'comment'];
+    const header = ['date', 'status', 'count', 'category', 'comment'];
     const rows = [...entries].sort((a, b) => a.date.localeCompare(b.date)).map(e =>
-      [e.date, e.status === 'did' ? 'Did It' : "Didn't", entryTags(e).join(', '), e.comment || ''].map(csvEscape).join(',')
+      [e.date, e.status === 'did' ? 'Did It' : "Didn't", entryCount(e), e.category || '', e.comment || ''].map(csvEscape).join(',')
     );
     const csv = header.join(',') + '\n' + rows.join('\n');
     downloadBlob(csv, 'text/csv', `did-it-export-${todayStr()}.csv`);
@@ -1238,56 +1326,132 @@
     els.importFileInput.click();
   });
 
+  function parseCsvLine(line) {
+    const out = [];
+    let cur = '', inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (inQuotes) {
+        if (c === '"') {
+          if (line[i + 1] === '"') { cur += '"'; i++; }
+          else { inQuotes = false; }
+        } else { cur += c; }
+      } else {
+        if (c === '"') inQuotes = true;
+        else if (c === ',') { out.push(cur); cur = ''; }
+        else cur += c;
+      }
+    }
+    out.push(cur);
+    return out;
+  }
+
+  function parseCsv(text) {
+    // Split into logical rows first, respecting quoted newlines
+    const rows = [];
+    let cur = '', inQuotes = false;
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (c === '"') inQuotes = !inQuotes;
+      if ((c === '\n') && !inQuotes) { rows.push(cur); cur = ''; }
+      else if (c !== '\r') cur += c;
+    }
+    if (cur.trim() !== '') rows.push(cur);
+    if (rows.length < 2) return [];
+
+    const header = parseCsvLine(rows[0]).map(h => h.trim().toLowerCase());
+    const dateIdx = header.indexOf('date');
+    const statusIdx = header.indexOf('status');
+    const catIdx = header.indexOf('category') > -1 ? header.indexOf('category') : header.indexOf('tags');
+    const commentIdx = header.indexOf('comment');
+    const countIdx = header.indexOf('count');
+    if (dateIdx === -1 || statusIdx === -1) return [];
+
+    const result = [];
+    for (let i = 1; i < rows.length; i++) {
+      if (!rows[i].trim()) continue;
+      const cols = parseCsvLine(rows[i]);
+      const rawStatus = (cols[statusIdx] || '').trim().toLowerCase();
+      const status = (rawStatus === 'did it' || rawStatus === 'did') ? 'did'
+                    : (rawStatus === "didn't" || rawStatus === 'didnt' || rawStatus === "didn't") ? 'didnt'
+                    : null;
+      const date = (cols[dateIdx] || '').trim();
+      if (!status || !/^\d{4}-\d{2}-\d{2}$/.test(date)) continue;
+      let count = countIdx > -1 ? parseInt(cols[countIdx], 10) : 1;
+      if (!Number.isFinite(count) || count < 1) count = 1;
+      if (status !== 'did') count = 1;
+      result.push({
+        status: status,
+        date: date,
+        count: count,
+        category: catIdx > -1 ? (cols[catIdx] || '').trim() : '',
+        comment: commentIdx > -1 ? (cols[commentIdx] || '').trim() : ''
+      });
+    }
+    return result;
+  }
+
   let pendingImport = null;
-  let pendingImportTags = [];
   els.importFileInput.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    const isCsv = /\.csv$/i.test(file.name) || file.type === 'text/csv';
     const reader = new FileReader();
     reader.onload = (evt) => {
-      let parsed;
-      try { parsed = JSON.parse(evt.target.result); }
-      catch (err) { showBackupMsg("That file isn't valid JSON"); return; }
-      const incoming = Array.isArray(parsed) ? parsed : parsed.entries;
-      const importedTags = Array.isArray(parsed) ? [] : normaliseTags(parsed?.settings?.tags);
-      if (!Array.isArray(incoming) && !importedTags.length) { showBackupMsg('No entries or saved tags found in that file'); return; }
-      const valid = Array.isArray(incoming) ? incoming.filter(e => e && (e.status === 'did' || e.status === 'didnt') && e.date) : [];
-      if (valid.length === 0 && !importedTags.length) { showBackupMsg('No valid entries or saved tags found in that file'); return; }
+      const text = evt.target.result;
+      let valid;
+
+      if (isCsv) {
+        valid = parseCsv(text);
+        if (valid.length === 0) {
+          showBackupMsg('No valid rows found — expected columns: date, status, category, comment');
+          return;
+        }
+      } else {
+        let parsed;
+        try { parsed = JSON.parse(text); }
+        catch (err) { showBackupMsg("That file isn't valid JSON"); return; }
+        const incoming = Array.isArray(parsed) ? parsed : parsed.entries;
+        if (!Array.isArray(incoming)) { showBackupMsg('No entries found in that file'); return; }
+        valid = incoming.filter(e => e && (e.status === 'did' || e.status === 'didnt') && e.date);
+        if (valid.length === 0) { showBackupMsg('No valid entries found in that file'); return; }
+      }
+
       valid.forEach(e => {
         if (!e.id) e.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
         if (!e.createdAt) e.createdAt = Date.now();
         if (typeof e.comment !== 'string') e.comment = '';
-        setEntryTags(e, Array.isArray(e.tags) ? e.tags : e.category);
+        if (typeof e.category !== 'string') e.category = '';
+        if (typeof e.count !== 'number' || !isFinite(e.count) || e.count < 1) e.count = 1;
+        e.count = Math.round(e.count);
+        if (e.status !== 'did') e.count = 1;
       });
       pendingImport = valid;
-      pendingImportTags = importedTags;
       els.importSummary.textContent =
-        `Found ${valid.length} entr${valid.length === 1 ? 'y' : 'ies'} and ${importedTags.length} saved tag${importedTags.length === 1 ? '' : 's'} in this backup. You currently have ${entries.length} entries. ` +
+        `Found ${valid.length} entr${valid.length === 1 ? 'y' : 'ies'} in this ${isCsv ? 'CSV' : 'backup'}. You currently have ${entries.length}. ` +
         `Merge will add new ones and skip duplicates by ID. Replace will wipe your current log first.`;
       els.importModal.classList.remove('hidden');
     };
     reader.readAsText(file);
   });
-  function closeImportModal() { els.importModal.classList.add('hidden'); pendingImport = null; pendingImportTags = []; }
+  function closeImportModal() { els.importModal.classList.add('hidden'); pendingImport = null; }
   els.importCancelBtn.addEventListener('click', closeImportModal);
   els.importMergeBtn.addEventListener('click', async () => {
     if (!pendingImport) return;
     const existingIds = new Set(entries.map(e => e.id));
     let added = 0;
     pendingImport.forEach(e => { if (!existingIds.has(e.id)) { entries.push(e); existingIds.add(e.id); added++; } });
-    settings.tags = mergeTags(settings.tags, pendingImportTags);
     closeImportModal();
     render();
-    await Promise.all([saveEntries(), saveSettings()]);
+    await saveEntries();
     showBackupMsg(`Merged — added ${added} new entr${added === 1 ? 'y' : 'ies'}`);
   });
   els.importReplaceBtn.addEventListener('click', async () => {
     if (!pendingImport) return;
     entries = [...pendingImport];
-    settings.tags = mergeTags(settings.tags, pendingImportTags);
     closeImportModal();
     render();
-    await Promise.all([saveEntries(), saveSettings()]);
+    await saveEntries();
     showBackupMsg(`Replaced log with ${entries.length} entries`);
   });
 
